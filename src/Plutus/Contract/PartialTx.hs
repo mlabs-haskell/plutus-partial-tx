@@ -27,7 +27,7 @@ module Plutus.Contract.PartialTx (
   unbalancedToPartial,
 ) where
 
-import Data.Aeson (ToJSON (toJSON), (.=))
+import Data.Aeson (FromJSON, ToJSON (toJSON), (.=))
 import qualified Data.Aeson as Aeson
 import Data.Coerce (coerce)
 import Data.Map (Map)
@@ -43,7 +43,11 @@ import Ledger (
   Address (Address),
   CurrencySymbol,
   Datum,
+  Extended (Finite, NegInf, PosInf),
+  Interval (Interval),
+  LowerBound (LowerBound),
   MintingPolicy (MintingPolicy),
+  POSIXTime (getPOSIXTime),
   POSIXTimeRange,
   PaymentPubKeyHash (PaymentPubKeyHash),
   PubKeyHash (PubKeyHash),
@@ -71,6 +75,7 @@ import Ledger (
   ),
   TxOut (TxOut),
   TxOutRef (TxOutRef),
+  UpperBound (UpperBound),
   Validator (Validator),
   ValidatorHash (..),
   Value,
@@ -99,6 +104,7 @@ import Plutus.V1.Ledger.Credential (
 import PlutusTx (FromData, ToData, toData)
 import qualified PlutusTx.AssocMap as PlutusMap
 
+import GHC.Generics (Generic)
 import Utils (serializeScriptCborHex)
 
 -- | Use 'Constraints.mkTx' to create an 'UnbalancedTx' and pass it to 'unbalancedToPartial'.
@@ -118,7 +124,7 @@ comprehensible to Lucid, creating a 'PartialTx'.
 It is expected that this 'UnbalancedTx' is a result of calling 'Ledger.Constraints.mkTx' on the lookups and the
 constraints.
 
-TODO: The PPOSIXTimeRange needs a more Lucid friendly representation.
+TODO: The POSIXTimeRange needs a more Lucid friendly representation.
 -}
 unbalancedToPartial :: UnbalancedTx -> PartialTx
 unbalancedToPartial
@@ -149,7 +155,7 @@ unbalancedToPartial
       , -- Datums unused by any script involved in the transaction.
         ptx'extraDatums = Set.fromList . filter (`Set.notMember` usedDatums) $ Map.elems txData
       , ptx'requiredSignatories = Map.keys reqSigMap
-      , ptx'validityRange = validityRange
+      , ptx'validityRange = mkValidityRange validityRange
       }
     where
       mpArr = Vec.fromList $ Set.toList txMintScripts
@@ -202,7 +208,7 @@ data PartialTx = PartialTx
   , -- | Wallets that _must_ sign the transaction.
     ptx'requiredSignatories :: ![PaymentPubKeyHash]
   , -- | Validity range of the transaction expressed in POSIXTime - interpretation depends on 'SlotConfig'.
-    ptx'validityRange :: !POSIXTimeRange
+    ptx'validityRange :: !ValidityRange
   }
   deriving stock (Eq, Show)
 
@@ -376,6 +382,29 @@ instance ToJSON Cred where
       [ "type" .= Txt.pack "Script"
       , "hash" .= LedgerBytes h
       ]
+
+-- | Use regular integers, not a newtype wrapper with a weird JSON instance.
+type POSIXTime' = Integer
+
+-- | A more PAB sensible representation of 'POSIXTimeRange'
+data ValidityRange = ValidityRange {validFrom :: Maybe POSIXTime', validTo :: Maybe POSIXTime'}
+  deriving stock (Eq, Ord, Show, Generic)
+  deriving anyclass (ToJSON, FromJSON)
+
+mkValidityRange :: POSIXTimeRange -> ValidityRange
+mkValidityRange (Interval from to) = ValidityRange (getPOSIXTime <$> fromLB from) (getPOSIXTime <$> fromUB to)
+
+fromLB :: LowerBound POSIXTime -> Maybe POSIXTime
+fromLB (LowerBound NegInf _) = Nothing
+fromLB (LowerBound (Finite a) True) = Just a
+fromLB (LowerBound (Finite a) False) = Just $ a + 1
+fromLB (LowerBound PosInf _) = error "fromLB: LowerBound is +Infinity (absurd)"
+
+fromUB :: UpperBound POSIXTime -> Maybe POSIXTime
+fromUB (UpperBound NegInf _) = error "fromUB: UpperBound is -Infinity (absurd)"
+fromUB (UpperBound (Finite a) True) = Just a
+fromUB (UpperBound (Finite a) False) = Just $ a - 1
+fromUB (UpperBound PosInf _) = Nothing
 
 -- | Convert a 'Value' to Lucid's `Assets` type.
 valToAsset :: Value -> Map AssetId Integer

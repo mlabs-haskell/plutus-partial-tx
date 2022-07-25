@@ -63,7 +63,7 @@ export type PartialTx = {
   requiredSignatories: PaymentKeyHash[];
   extraDatums: Datum[];
   // FIXME: Validity range support.
-  validityRange: any;
+  validityRange: { validFrom?: number; validTo?: number };
 };
 
 // Just an enhancement. See: https://github.com/Berry-Pool/lucid/pull/43
@@ -88,7 +88,7 @@ export class LucidEx extends Lucid {
 
   // TODO: Add support for validity range handling.
   // The `PartialTx` interpreter, convert a `PartialTx` into a Lucid transaction.
-  buildTxFrom({ inps, outs, mint, requiredSignatories, extraDatums }: PartialTx): TxEx {
+  buildTxFrom({ inps, outs, mint, requiredSignatories, extraDatums, validityRange }: PartialTx): TxEx {
     // Filter out the non-script inputs to 'collectFrom' all at once.
     const simpleInps = inps.flatMap(({ address, txId, txIdx, val, details }): UTxO[] =>
       details.tag === 'ScriptTxIn'
@@ -151,7 +151,11 @@ export class LucidEx extends Lucid {
     // Step 7: Next, the minting policies to be invoked are attached one by one.
     tx = Object.values(mint).reduce((acc, { policy }) => acc.attachMintingPolicy(policy), tx);
 
-    // Step 8: Finally, any extra datums are added to the transaction.
+    // Step 8: The validity range of the transaction is set (if provided).
+    tx = validityRange.validFrom == null ? tx : tx.validFrom(validityRange.validFrom);
+    tx = validityRange.validTo == null ? tx : tx.validFrom(validityRange.validTo);
+
+    // Step 9: Finally, any extra datums are added to the transaction.
     tx = extraDatums.reduce((acc, x) => {
       acc.txBuilder.add_plutus_data(C.PlutusData.from_bytes(fromHex(x)));
       return acc;
