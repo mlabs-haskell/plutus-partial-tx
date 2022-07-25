@@ -74,7 +74,7 @@ import Ledger (
   Validator (Validator),
   ValidatorHash (..),
   Value,
-  mintingPolicyHash
+  mintingPolicyHash,
  )
 import Ledger.Constraints (
   MkTxError,
@@ -99,7 +99,7 @@ import Plutus.V1.Ledger.Credential (
 import PlutusTx (FromData, ToData, toData)
 import qualified PlutusTx.AssocMap as PlutusMap
 
-import Ply.Core.Serialize (serializeScriptCborHex)
+import Utils (serializeScriptCborHex)
 
 -- | Use 'Constraints.mkTx' to create an 'UnbalancedTx' and pass it to 'unbalancedToPartial'.
 mkPartialTx ::
@@ -191,18 +191,18 @@ Presented in such a way that it is understandable by Lucid with minimal computat
 It also has custom JSON instances that generally make the fields easier to parse on the frontend.
 -}
 data PartialTx = PartialTx
-  { ptx'inps :: !(Set PartialTxIn)
-  -- ^ A set of all the inputs that _must_ be consumed by the transaction.
-  , ptx'outs :: ![PartialTxOut]
-  -- ^ A list of all the outputs that _must_ be produced by the transaction.
-  , ptx'mint :: !(Map AssetId PartialTxMintVal)
-  -- ^ A map of asset identifier to mint info.
-  , ptx'extraDatums :: !(Set Datum)
-  -- ^ Any extra datums added to the transaction.
-  , ptx'requiredSignatories :: ![PaymentPubKeyHash]
-  -- ^ Wallets that _must_ sign the transaction.
-  , ptx'validityRange :: !POSIXTimeRange
-  -- ^ Validity range of the transaction expressed in POSIXTime - interpretation depends on 'SlotConfig'.
+  { -- | A set of all the inputs that _must_ be consumed by the transaction.
+    ptx'inps :: !(Set PartialTxIn)
+  , -- | A list of all the outputs that _must_ be produced by the transaction.
+    ptx'outs :: ![PartialTxOut]
+  , -- | A map of asset identifier to mint info.
+    ptx'mint :: !(Map AssetId PartialTxMintVal)
+  , -- | Any extra datums added to the transaction.
+    ptx'extraDatums :: !(Set Datum)
+  , -- | Wallets that _must_ sign the transaction.
+    ptx'requiredSignatories :: ![PaymentPubKeyHash]
+  , -- | Validity range of the transaction expressed in POSIXTime - interpretation depends on 'SlotConfig'.
+    ptx'validityRange :: !POSIXTimeRange
   }
   deriving stock (Eq, Show)
 

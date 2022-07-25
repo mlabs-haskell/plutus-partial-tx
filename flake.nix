@@ -6,29 +6,9 @@
     haskell-nix.follows = "bot-plutus-interface/haskell-nix";
 
     bot-plutus-interface.url = "github:mlabs-haskell/bot-plutus-interface";
-
-    plutarch.url = "github:Plutonomicon/plutarch";
-    plutarch.inputs.haskell-nix.follows = "bot-plutus-interface/haskell-nix";
-    plutarch.inputs.nixpkgs.follows = "bot-plutus-interface/nixpkgs";
-
-    plutus-extra = {
-      url = "github:Liqwid-Labs/plutus-extra";
-      inputs = {
-        haskell-nix.follows = "bot-plutus-interface/haskell-nix";
-        nixpkgs.follows = "bot-plutus-interface/nixpkgs";
-      };
-    };
-
-    ply = {
-      url = "github:mlabs-haskell/ply";
-      inputs = {
-        haskell-nix.follows = "bot-plutus-interface/haskell-nix";
-        nixpkgs.follows = "bot-plutus-interface/nixpkgs";
-      };
-    };
   };
 
-  outputs = inputs@{ self, nixpkgs, haskell-nix, plutarch, bot-plutus-interface, ... }:
+  outputs = inputs@{ self, nixpkgs, haskell-nix, bot-plutus-interface, ... }:
     let
       # GENERAL
       supportedSystems = with nixpkgs.lib.systems.supported; tier1 ++ tier2 ++ tier3;
@@ -80,14 +60,6 @@
                 src = bot-plutus-interface;
                 subdirs = [ "." ];
               }
-              {
-                src = inputs.plutus-extra;
-                subdirs = [ "quickcheck-plutus-instances" ];
-              }
-              {
-                src = inputs.ply;
-                subdirs = [ "ply-core" ];
-              }
             ];
             modules = bot-plutus-interface.haskellModules;
 
@@ -112,8 +84,6 @@
 
               additional = ps: [
                 ps.bot-plutus-interface
-                ps.quickcheck-plutus-instances
-                ps.ply-core
               ];
             };
           };

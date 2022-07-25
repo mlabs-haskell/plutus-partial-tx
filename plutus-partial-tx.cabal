@@ -1,16 +1,10 @@
-cabal-version: 3.0
-name:          plutus-partial-tx
-version:       0.0.1
-synopsis:      TODO
-description:   TODO
-homepage:      https://github.com/mlabs-haskell/plutus-partial-tx
-license:
-license-file:
-author:        MLabs
-maintainer:    TODO
-copyright:     TODO
-category:      TODO
-build-type:    Simple
+cabal-version:      3.0
+name:               plutus-partial-tx
+version:            0.0.1
+homepage:           https://github.com/mlabs-haskell/plutus-partial-tx
+author:             Chase <chase@mlabs.city>
+license:            MIT
+extra-source-files: README.md
 
 flag dev
   description: Enable lean development
@@ -35,21 +29,22 @@ common common-deps
   build-depends:
     , aeson
     , base
+    , base16-bytestring
     , bytestring
+    , cardano-binary
     , containers
     , data-default
     , directory
     , filepath
-    , mtl
     , plutus-contract
     , plutus-core
     , plutus-ledger
     , plutus-ledger-api
     , plutus-ledger-constraints
     , plutus-tx
-    , ply-core
-    , vector
+    , serialise
     , text
+    , vector
 
 common common-lang
   default-extensions:
@@ -92,21 +87,6 @@ library
   import:          common-ghc-opts
   exposed-modules:
     Plutus.Contract.PartialTx
+    Utils
 
   hs-source-dirs:  src
-
-test-suite ply-test-suite
-  import:         common-lang
-  import:         common-configs
-  import:         common-deps
-  import:         common-ghc-opts
-  type:           exitcode-stdio-1.0
-  main-is:        Spec.hs
-  build-depends:
-    , tasty
-    , tasty-quickcheck
-    , QuickCheck
-    , quickcheck-plutus-instances
-
-  hs-source-dirs: tests
-  ghc-options:    -threaded -rtsopts -with-rtsopts=-N
