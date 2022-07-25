@@ -36,6 +36,7 @@ common common-deps
     , data-default
     , directory
     , filepath
+    , lens
     , plutus-contract
     , plutus-core
     , plutus-ledger

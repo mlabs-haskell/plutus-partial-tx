@@ -5,7 +5,7 @@
     nixpkgs.follows = "bot-plutus-interface/nixpkgs";
     haskell-nix.follows = "bot-plutus-interface/haskell-nix";
 
-    bot-plutus-interface.url = "github:mlabs-haskell/bot-plutus-interface?gergeley/vasil";
+    bot-plutus-interface.url = "github:mlabs-haskell/bot-plutus-interface?ref=gergely/vasil";
   };
 
   outputs = inputs@{ self, nixpkgs, haskell-nix, bot-plutus-interface, ... }:

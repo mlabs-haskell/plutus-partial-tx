@@ -1,3 +1,5 @@
+{-# LANGUAGE ViewPatterns #-}
+
 {- |
 Module: Plutus.Contract.PartialTx
 Description: Machinery for constructing a 'PartialTx' out of an 'UnbalancedTx', or lookups and constraints.
@@ -38,6 +40,8 @@ import qualified Data.Set as Set
 import qualified Data.Text as Txt
 import Data.Vector (Vector)
 import qualified Data.Vector as Vec
+
+import Control.Lens (view, _Right)
 
 import Ledger (
   Address (Address),
@@ -129,7 +133,7 @@ TODO: The POSIXTimeRange needs a more Lucid friendly representation.
 unbalancedToPartial :: UnbalancedTx -> PartialTx
 unbalancedToPartial
   ( UnbalancedTx
-      Tx {txInputs, txOutputs, txMint, txMintScripts, txRedeemers, txData}
+      (view _Right -> Tx {txInputs, txOutputs, txMint, txMintScripts, txRedeemers, txData})
       reqSigMap
       utxoIx
       validityRange
@@ -154,7 +158,7 @@ unbalancedToPartial
       , ptx'mint = valToMintAsset mpArr txRedeemers txMint
       , -- Datums unused by any script involved in the transaction.
         ptx'extraDatums = Set.fromList . filter (`Set.notMember` usedDatums) $ Map.elems txData
-      , ptx'requiredSignatories = Map.keys reqSigMap
+      , ptx'requiredSignatories = Set.toList reqSigMap
       , ptx'validityRange = mkValidityRange validityRange
       }
     where
