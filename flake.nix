@@ -5,7 +5,7 @@
     nixpkgs.follows = "bot-plutus-interface/nixpkgs";
     haskell-nix.follows = "bot-plutus-interface/haskell-nix";
 
-    bot-plutus-interface.url = "github:mlabs-haskell/bot-plutus-interface";
+    bot-plutus-interface.url = "github:mlabs-haskell/bot-plutus-interface?gergeley/vasil";
   };
 
   outputs = inputs@{ self, nixpkgs, haskell-nix, bot-plutus-interface, ... }:
@@ -70,15 +70,18 @@
 
               # We use the ones from Nixpkgs, since they are cached reliably.
               # Eventually we will probably want to build these with haskell.nix.
-              nativeBuildInputs = [
-                pkgs'.cabal-install
-                pkgs'.fd
-                pkgs'.haskellPackages.apply-refact
-                pkgs'.haskellPackages.cabal-fmt
-                pkgs'.hlint
-                pkgs'.nixpkgs-fmt
-                pkgs'.haskellPackages.fourmolu
-              ];
+              nativeBuildInputs = (with pkgs'; [
+                cabal-install
+                fd
+                haskellPackages.apply-refact
+                haskellPackages.cabal-fmt
+                hlint
+                nixpkgs-fmt
+                nodejs
+                nodePackages.npm
+                haskellPackages.fourmolu
+                nodePackages.prettier
+              ]);
 
               tools.haskell-language-server = { };
 
@@ -95,25 +98,6 @@
 
       project = perSystem projectFor;
       flake = perSystem (system: (projectFor system).flake { });
-
-      checks = perSystem (system:
-        self.flake.${system}.checks
-        // {
-          formatCheck = formatCheckFor system;
-        }
-      );
-      check = perSystem (system:
-        (nixpkgsFor system).runCommand "combined-test"
-          {
-            checksss =
-              builtins.attrValues self.checks.${system}
-              ++ builtins.attrValues self.packages.${system}
-              ++ [ self.devShell.inputDerivation ];
-          } ''
-          echo $checksss
-          touch $out
-        ''
-      );
 
       packages = perSystem (system: self.flake.${system}.packages);
       apps = perSystem (system: self.flake.${system}.apps);

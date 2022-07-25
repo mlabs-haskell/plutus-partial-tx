@@ -1,15 +1,17 @@
 {
   "name": "lucid-partialtx-cardano",
-  "version": "1.0.0",
-  "type": "module",
+  "version": "0.1.0",
   "description": "Interpreter for partial transactions using lucid-cardano",
   "author": "chase@mlabs.city",
   "license": "MIT",
   "dependencies": {
-    "lucid-cardano": "^0.3.5"
+    "lucid-cardano": "^0.5.2"
   },
   "devDependencies": {
     "@types/node": "^18.0.3",
-    "typescript": "^4.7.3"
+    "ts-loader": "^9.3.1",
+    "typescript": "^4.7.3",
+    "webpack": "^5.74.0",
+    "webpack-cli": "^4.10.0"
   }
 }
