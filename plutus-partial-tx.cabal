@@ -91,3 +91,35 @@ library
     Utils
 
   hs-source-dirs:  src
+
+executable partial-tx-server
+  import:         common-lang
+  import:         common-configs
+  import:         common-deps
+  import:         common-ghc-opts
+  main-is:        Main.hs
+  build-depends:
+    , aeson-pretty
+    , bot-plutus-interface
+    , cardano-api           ==1.35.1
+    , playground-common
+    , plutus-pab
+    , plutus-partial-tx
+    , plutus-tx-plugin
+    , servant
+    , servant-client
+    , servant-server
+    , stm
+    , uuid
+    , vector
+    , wai-extra
+    , warp
+
+  other-modules:
+    Api.Types
+    BPI.Testnet.Setup
+
+  hs-source-dirs: example
+  ghc-options:
+    -threaded -rtsopts -with-rtsopts=-N -fobject-code
+    -fno-ignore-interface-pragmas -fno-omit-interface-pragmas

@@ -6,9 +6,11 @@
     haskell-nix.follows = "bot-plutus-interface/haskell-nix";
 
     bot-plutus-interface.url = "github:mlabs-haskell/bot-plutus-interface?ref=gergely/vasil";
+
+    cardano-node.url = "github:input-output-hk/cardano-node?ref=7612a245a6e2c51d0f1c3e0d65d7fe9363850043";
   };
 
-  outputs = inputs@{ self, nixpkgs, haskell-nix, bot-plutus-interface, ... }:
+  outputs = inputs@{ self, nixpkgs, haskell-nix, bot-plutus-interface, cardano-node, ... }:
     let
       # GENERAL
       supportedSystems = with nixpkgs.lib.systems.supported; tier1 ++ tier2 ++ tier3;
@@ -49,6 +51,14 @@
 
       projectFor = system:
         let
+          # For adding cardano exes to the nix shell.
+          cardano-exes = [
+            cardano-node.apps.${system}.cardano-node
+          ] ++ (with cardano-node.apps.${system}; [
+            cardano-cli
+            cardano-submit-api
+          ]);
+          cardanoExesPath = builtins.concatStringsSep ":" (map (x: builtins.dirOf x.program) cardano-exes);
           pkgs = nixpkgsFor system;
           pkgs' = nixpkgsFor' system;
           project = pkgs.haskell-nix.cabalProject' {
@@ -81,6 +91,8 @@
                 nodePackages.npm
                 haskellPackages.fourmolu
                 nodePackages.prettier
+              ]) ++ (with project.hsPkgs; [
+                  plutus-chain-index.components.exes.plutus-chain-index
               ]);
 
               tools.haskell-language-server = { };
@@ -88,6 +100,11 @@
               additional = ps: [
                 ps.bot-plutus-interface
               ];
+
+              # Add the cardano exes to PATH.
+              shellHook = ''
+                export PATH=$PATH:${cardanoExesPath}
+              '';
             };
           };
         in

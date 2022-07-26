@@ -253,6 +253,8 @@ data PartialTxMintVal = PartialTxMv
   }
   deriving stock (Eq, Ord, Show)
 
+-- TODO https://hackage.haskell.org/package/aeson-2.1.0.0/docs/Data-Aeson-TH.html
+
 instance ToJSON PartialTx where
   toJSON
     ( PartialTx
