@@ -2,8 +2,6 @@
 
 A library to export partial transactions (unbalanced, unsigned) and get them signed and submitted by a frontend PAB. This enables you to re-use your regular Haskell `Contract`s while still having a deployment solution for production - effortlessly.
 
-**NOTE**: This currently lacks support for validity ranges.
-
 # Highlights
 
 - Write all your contracts in the familiar `Contract` monad.
@@ -13,7 +11,9 @@ A library to export partial transactions (unbalanced, unsigned) and get them sig
 
 # Usage
 
-There will soon be a full example in this repo once BPI has been updated with Vasil support. But here's the core idea:
+See: [full example](#full-example)
+
+Here's the core idea:
 
 Keep your Haskell contracts as they are, just make them return `UnbalancedTx` using [`Ledger.Constraints.mkTx`](https://playground.plutus.iohkdev.io/doc/haddock/plutus-ledger-constraints/html/Ledger-Constraints.html#v:mkTx). Alternatively, make them return the `ScriptLookups` and the `TxConstraints`.
 
