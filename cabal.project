@@ -3,3 +3,7 @@ index-state: 2022-04-22T00:00:00Z
 packages: ./.
 
 tests: true
+
+constraints: servant >= 0.19
+
+allow-newer: blockfrost-api:servant
