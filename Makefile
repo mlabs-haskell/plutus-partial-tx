@@ -8,8 +8,8 @@ hoogle: requires_nix_shell
 	hoogle server --local --port=8070 > /dev/null &
 
 services: requires_nix_shell
-	@cd testnet; ./start-node.sh > node.log & \
-	sleep 0.5; \
+	@cd testnet; rm -f $$PWD/node/node.socket; \
+	./start-node.sh > node.log & \
 	echo "Waiting for node.socket, please wait...."; \
 	until [ -S $$PWD/node/node.socket ]; do sleep 1; done; \
 	./start-cix.sh > cix.log &
@@ -18,13 +18,16 @@ stop-services: requires_nix_shell
 	pkill -SIGINT cardano-node; pkill -SIGINT plutus-chain-in
 
 serve: requires_nix_shell
-	@cd testnet; . ./set-env.sh && cd .. && cabal run partial-tx-server
+	@CARDANO_NODE_SOCKET_PATH=$$PWD/testnet/node/node.socket cabal run partial-tx-server
 
 build-frontend: requires_nix_shell
 	@cd lucid-partialtx; npx webpack
 
 watch-frontend: requires_nix_shell
 	@cd lucid-partialtx; npx webpack --watch
+
+query-tip: requires_nix_shell
+	@CARDANO_NODE_SOCKET_PATH=$$PWD/testnet/node/node.socket cardano-cli query tip --testnet-magic 1097911063
 
 ifdef FLAGS
 GHC_FLAGS = --ghc-options "$(FLAGS)"

@@ -39,7 +39,7 @@ unbalancedToPartial :: UnbalancedTx -> PartialTx
 Now, you need a Haskell server to serve these `PartialTx` to the frontend - where the user's browser will receive the JSON of this data type. Once the frontend has access to the `PartialTx`, you can use Lucid to interpret it into a Transaction:
 
 ```ts
-buildTxFrom({ inps, outs, mint, requiredSignatories, extraDatums }: PartialTx): Tx
+buildTxFrom(this: Lucid, { inps, outs, mint, requiredSignatories, extraDatums }: PartialTx): Tx
 ```
 
 > Aside: For now, you may have to copy over `lucid-partialtx` to use `buildTxFrom` and relevant types. In the future, there will be an upstream package for it.
@@ -47,9 +47,52 @@ buildTxFrom({ inps, outs, mint, requiredSignatories, extraDatums }: PartialTx): 
 Once you obtain a Lucid `Tx`, it's as simple as signing and submitting it, which looks like:
 
 ```ts
-const tx = await lucid.buildTxFrom(partialTx).complete();
+const tx = await buildTxFrom.bind(lucid, partialTx).complete();
 const signedTx = await tx.sign().complete();
 return signedTx.submit();
 ```
 
-where `lucid` is an instance of `LucidEx` from `lucid-partialtx`, and `partialTx` is the `PartialTx` JSON.
+where `lucid` is an instance of `Lucid`, and `partialTx` is the `PartialTx` JSON.
+
+# Full example
+There is also a full example with servant, BPI, and Lucid that can run a dummy minting contract on the testnet. Check the haskell code [in the example directory](./example). The gist is that you can copy over `BPI.Testnet.Setup` and use the exposed interface to create `PartialTx`s in the context of the testnet.
+
+The example frontend is in `lucid-partialtx/example`.
+
+To run the project and run stuff on the testnet, head inside the nix shell by doing `nix develop`, and follow these steps:
+
+## 1. Fill in blockfrost config
+ You need to fill a `config.json` and put it in `example/config.json`, this config should contain your blockfrost API access key:
+
+```json
+{
+    "blockfrostUrl": "TESTNET_BLOCKFROST_URL",
+    "blockfrostProjId": "TESTNET_BLOCKFROST_PROJID"
+}
+```
+
+> Aside: Of course, you can also deploy all this in production by switching out to connect to the mainnet in the BPI setup and blockfrost setup.
+
+## 2. Start `cardano-node` and `plutus-chain-index` in background
+
+You'll also need `cardano-node` and `chain-index` running in the background, properly connected to testnet.
+
+All you have to do run `make services`.
+
+This will take some time to sync. You can see the node logs in `testnet/node.log` and chain index logs in `testnet/cix.log`. You can query the node sync progress by running `make query-tip`.
+
+> Note: Remember to stop these background services when you're done! Use `make stop-services` to do so.
+
+## 3. Build the frontend project
+Head inside the `lucid-partialtx` directory and run the following commands:
+
+- `npm i` - to install all the npm dependencies
+- `npx webpack` - to build the project
+
+Alternatively, if you've already done `npm i` and have the `node_modules` from it - you can run `make build-frontend` from the root project path.
+
+## 4. Start the server
+
+Once the node has synced and all the previous steps have been completed, run `make serve`. Head to `localhost:8080` to see a beautiful frontend with a singular dummy minting button!
+
+**Note**: You'll need a wallet supporting Vasil for signing and submission to work properly.
