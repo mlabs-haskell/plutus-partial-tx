@@ -104,7 +104,7 @@ contractEndpoints ExampleCtx {contrRunner = ContractRunner {runContract}} ownPkh
 server :: ExampleCtx -> Server ExampleApi
 server eCtx@ExampleCtx {indexContent} =
   NamedExampleApi
-    { staticRoutes = StaticRoutes {dist = serveDirectoryWebApp "lucid-partialtx/dist"}
+    { staticRoutes = StaticRoutes {dist = serveDirectoryWebApp "example/frontend/dist"}
     , contractRoutes = contractEndpoints eCtx
     }
     :<|> serveDirectoryEmbedded [("index.html", indexContent)]
@@ -114,7 +114,7 @@ main = do
   let bpiDir = "testnet"
 
   contrRunner <- BpiSetup.runSetup bpiDir
-  indexContent <- liftIO $ BS.readFile "lucid-partialtx/example/index.html"
+  indexContent <- liftIO $ BS.readFile "example/frontend/index.html"
 
   let port :: Port = 8080
   putStrLn $ "Serving at port: " ++ show port
