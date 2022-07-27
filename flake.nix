@@ -23,30 +23,6 @@
       };
       nixpkgsFor' = system: import nixpkgs { inherit system; };
 
-      formatCheckFor = system:
-        let
-          pkgs = nixpkgsFor system;
-          pkgs' = nixpkgsFor' system;
-        in
-        pkgs.runCommand "format-check"
-          {
-            nativeBuildInputs = [
-              pkgs'.git
-              pkgs'.fd
-              pkgs'.haskellPackages.cabal-fmt
-              pkgs'.nixpkgs-fmt
-              pkgs'.haskellPackages.fourmolu
-            ];
-          } ''
-          export LC_CTYPE=C.UTF-8
-          export LC_ALL=C.UTF-8
-          export LANG=C.UTF-8
-          cd ${self}
-          make format_check
-          mkdir $out
-        ''
-      ;
-
       deferPluginErrors = true;
 
       projectFor = system:
@@ -87,12 +63,12 @@
                 haskellPackages.cabal-fmt
                 hlint
                 nixpkgs-fmt
+                deno
                 nodejs
                 nodePackages.npm
                 haskellPackages.fourmolu
-                nodePackages.prettier
               ]) ++ (with project.hsPkgs; [
-                  plutus-chain-index.components.exes.plutus-chain-index
+                plutus-chain-index.components.exes.plutus-chain-index
               ]);
 
               tools.haskell-language-server = { };
