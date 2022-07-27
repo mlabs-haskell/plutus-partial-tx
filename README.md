@@ -9,6 +9,18 @@ A library to export partial transactions (unbalanced, unsigned) and get them sig
 - Run your contracts on the testnet (and mainnet!) utilizing a lightweight frontend PAB (i.e [Lucid](https://github.com/Berry-Pool/lucid)) - without ever having to rewrite your contracts or any extra logic. Simply re-use your Haskell contracts, call `.sign` and `.submit` on the frontend.
 - Extremely lightweight, easy to test in local development environment. If using [bot-plutus-interface](https://github.com/mlabs-haskell/bot-plutus-interface) (BPI), all you need is `cardano-node` and `plutus-chain-index`.
 
+# Installation
+
+1. Add a `bot-plutus-interface` as a dependency in your nix flake setup.
+2. Add `plutus-partial-tx` to your flake inputs and extra sources.
+3. Add latest version of `cardano-node`, `cardano-cli` to your nix shell.
+
+  (OR) Download them from hydra and put them in your `$PATH`.
+4. Have `plutus-chain-index` (ideally the same version used by `bot-plutus-interface`) binary available in your shell/PATH.
+5. (TEMPORARY) Copy over `lucid-partialtx/index.ts` and `lucid-partialtx/plutus/types.ts` to your project.
+
+  There'll be a NPM package for this eventually.
+
 # Usage
 
 See: [full example](#full-example)
