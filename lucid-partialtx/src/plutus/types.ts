@@ -1,4 +1,4 @@
-import { PolicyId, TxHash } from 'lucid-cardano';
+import { PolicyId, TxHash } from "../deps/lucid.ts";
 
 // JSON representation of 'PlutusTx.Rational' on the Haskell side.
 export type Rational = { numerator: number; denominator: number };
