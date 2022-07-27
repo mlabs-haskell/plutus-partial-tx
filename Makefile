@@ -1,5 +1,5 @@
 .PHONY: hoogle build-all format lint requires_nix_shell services \
-		stop-services
+		stop-services build-lucid-lib build-frontend watch-frontend
 
 build-all:
 	nix -L --show-trace build .#packages.x86_64-linux
@@ -14,17 +14,20 @@ services: requires_nix_shell
 	until [ -S $$PWD/node/node.socket ]; do sleep 1; done; \
 	./start-cix.sh > cix.log &
 
-stop-services: requires_nix_shell
+stop-services:
 	pkill -SIGINT cardano-node; pkill -SIGINT plutus-chain-in
 
 serve: requires_nix_shell
 	@CARDANO_NODE_SOCKET_PATH=$$PWD/testnet/node/node.socket cabal run partial-tx-server
 
+build-lucid-lib: requires_nix_shell
+	@cd lucid-partialtx && deno run --allow-env --allow-write --allow-read --allow-net --allow-run build.ts; \
+
 build-frontend: requires_nix_shell
-	@cd lucid-partialtx; npx webpack
+	@cd example/frontend && npx webpack
 
 watch-frontend: requires_nix_shell
-	@cd lucid-partialtx; npx webpack --watch
+	@cd example/frontend && npx webpack --watch
 
 query-tip: requires_nix_shell
 	@CARDANO_NODE_SOCKET_PATH=$$PWD/testnet/node/node.socket cardano-cli query tip --testnet-magic 1097911063
@@ -35,15 +38,17 @@ endif
 
 EXTENSIONS := -o -XTypeApplications -o -XPatternSynonyms
 
-# Run fourmolu formatter
+# Run fourmolu and deno formatter
 format: requires_nix_shell
 	env -C . fourmolu -i --check-idempotence $(EXTENSIONS) $(shell env -C . fd -ehs)
+	deno fmt lucid-partialtx
 	nixpkgs-fmt $(NIX_SOURCES)
 	cabal-fmt -i $(CABAL_SOURCES)
 
 # Check formatting (without making changes)
 format_check:
 	env -C . fourmolu --mode check --check-idempotence $(EXTENSIONS) $(shell env -C . fd -ehs)
+	deno fmt lucid-partialtx --check
 	nixpkgs-fmt --check $(NIX_SOURCES)
 	cabal-fmt -c $(CABAL_SOURCES)
 
