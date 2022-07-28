@@ -76,99 +76,101 @@ export type PartialTx = {
   validityRange: { validFrom?: number; validTo?: number };
 };
 
+export type PartialTxInterpreter = (x: PartialTx) => Tx;
+
 // The `PartialTx` interpreter, convert a `PartialTx` into a Lucid transaction.
-export function buildTxFrom(
-  this: Lucid,
-  { inps, outs, mint, requiredSignatories, extraDatums, validityRange }:
-    PartialTx,
-): Tx {
-  // Filter out the non-script inputs to 'collectFrom' all at once.
-  const simpleInps = inps.flatMap((
-    { address, txId, txIdx, val, details },
-  ): UTxO[] =>
-    details.tag === "ScriptTxIn" ? [] : [
-      {
-        txHash: txId,
-        outputIndex: txIdx,
-        address: addrToAddress(this.network, address),
-        assets: assetsFromAssetsP(val),
-      },
-    ]
-  );
-
-  // Step 1: The base transaction starts off consuming all the simple inputs.
-  let tx = this.newTx().collectFrom(simpleInps);
-
-  // Step 2: Next, all the script inputs are added into the transaction, alongside their datums and redeemers.
-  tx = inps.reduce((acc, { txId, txIdx, address, val, details }) => {
-    switch (details.tag) {
-      case "ScriptTxIn": {
-        const utxo: UTxO = {
+export function mkPartialTxInterpreter(lucid: Lucid): PartialTxInterpreter {
+  return (
+    { inps, outs, mint, requiredSignatories, extraDatums, validityRange },
+  ) => {
+    // Filter out the non-script inputs to 'collectFrom' all at once.
+    const simpleInps = inps.flatMap((
+      { address, txId, txIdx, val, details },
+    ): UTxO[] =>
+      details.tag === "ScriptTxIn" ? [] : [
+        {
           txHash: txId,
           outputIndex: txIdx,
-          address: addrToAddress(this.network, address),
+          address: addrToAddress(lucid.network, address),
           assets: assetsFromAssetsP(val),
-          datum: details.datum,
-          datumHash: this.utils.datumToHash(details.datum),
-        };
-        return acc.collectFrom([utxo], details.redeemer);
+        },
+      ]
+    );
+
+    // Step 1: The base transaction starts off consuming all the simple inputs.
+    let tx = lucid.newTx().collectFrom(simpleInps);
+
+    // Step 2: Next, all the script inputs are added into the transaction, alongside their datums and redeemers.
+    tx = inps.reduce((acc, { txId, txIdx, address, val, details }) => {
+      switch (details.tag) {
+        case "ScriptTxIn": {
+          const utxo: UTxO = {
+            txHash: txId,
+            outputIndex: txIdx,
+            address: addrToAddress(lucid.network, address),
+            assets: assetsFromAssetsP(val),
+            datum: details.datum,
+            datumHash: lucid.utils.datumToHash(details.datum),
+          };
+          return acc.collectFrom([utxo], details.redeemer);
+        }
+        // These have already been added in the previous step.
+        case "PubKeyTxIn":
+        case "SimpleScriptTxIn":
+          return acc;
       }
-      // These have already been added in the previous step.
-      case "PubKeyTxIn":
-      case "SimpleScriptTxIn":
-        return acc;
-    }
-  }, tx);
+    }, tx);
 
-  // Step 3: Next, all the script outputs are added into the transaction, alongside their datums (if any).
-  tx = outs.reduce((acc, { address, val, datum }) => {
-    const targetAddr = addrToAddress(this.network, address);
-    const targetVal = assetsFromAssetsP(val);
-    return datum
-      ? acc.payToAddressWithData(targetAddr, datum, targetVal)
-      : acc.payToAddress(targetAddr, targetVal);
-  }, tx);
+    // Step 3: Next, all the script outputs are added into the transaction, alongside their datums (if any).
+    tx = outs.reduce((acc, { address, val, datum }) => {
+      const targetAddr = addrToAddress(lucid.network, address);
+      const targetVal = assetsFromAssetsP(val);
+      return datum
+        ? acc.payToAddressWithData(targetAddr, datum, targetVal)
+        : acc.payToAddress(targetAddr, targetVal);
+    }, tx);
 
-  // Step 4: Next, all the minting information is added, alongside their redeemers.
-  tx = Object.entries(mint).reduce(
-    (acc, [assetUnit, { redeemer, amount }]) =>
-      acc.mintAssets({ [assetUnit]: BigInt(amount) }, redeemer),
-    tx,
-  );
+    // Step 4: Next, all the minting information is added, alongside their redeemers.
+    tx = Object.entries(mint).reduce(
+      (acc, [assetUnit, { redeemer, amount }]) =>
+        acc.mintAssets({ [assetUnit]: BigInt(amount) }, redeemer),
+      tx,
+    );
 
-  // Step 5: Next, all the required signers are noted down.
-  tx = requiredSignatories.reduce((acc, x) => acc.addSignerKey(x), tx);
+    // Step 5: Next, all the required signers are noted down.
+    tx = requiredSignatories.reduce((acc, x) => acc.addSignerKey(x), tx);
 
-  // Step 6: Next, the validators to be invoked are attached one by one.
-  tx = inps.reduce(
-    (
-      acc,
-      { details },
-    ) => (details.tag == "ScriptTxIn"
-      ? acc.attachSpendingValidator(details.validator)
-      : acc),
-    tx,
-  );
+    // Step 6: Next, the validators to be invoked are attached one by one.
+    tx = inps.reduce(
+      (
+        acc,
+        { details },
+      ) => (details.tag == "ScriptTxIn"
+        ? acc.attachSpendingValidator(details.validator)
+        : acc),
+      tx,
+    );
 
-  // Step 7: Next, the minting policies to be invoked are attached one by one.
-  tx = Object.values(mint).reduce(
-    (acc, { policy }) => acc.attachMintingPolicy(policy),
-    tx,
-  );
+    // Step 7: Next, the minting policies to be invoked are attached one by one.
+    tx = Object.values(mint).reduce(
+      (acc, { policy }) => acc.attachMintingPolicy(policy),
+      tx,
+    );
 
-  // Step 8: The validity range of the transaction is set (if provided).
-  tx = validityRange.validFrom == null
-    ? tx
-    : tx.validFrom(validityRange.validFrom);
-  tx = validityRange.validTo == null ? tx : tx.validTo(validityRange.validTo);
+    // Step 8: The validity range of the transaction is set (if provided).
+    tx = validityRange.validFrom == null
+      ? tx
+      : tx.validFrom(validityRange.validFrom);
+    tx = validityRange.validTo == null ? tx : tx.validTo(validityRange.validTo);
 
-  // Step 9: Finally, any extra datums are added to the transaction.
-  tx = extraDatums.reduce((acc, x) => {
-    acc.txBuilder.add_plutus_data(C.PlutusData.from_bytes(fromHex(x)));
-    return acc;
-  }, tx);
+    // Step 9: Finally, any extra datums are added to the transaction.
+    tx = extraDatums.reduce((acc, x) => {
+      acc.txBuilder.add_plutus_data(C.PlutusData.from_bytes(fromHex(x)));
+      return acc;
+    }, tx);
 
-  return tx;
+    return tx;
+  };
 }
 
 // Below are a few utility functions that convert the Haskell returned types into Lucid native types.

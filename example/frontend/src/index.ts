@@ -1,6 +1,5 @@
 import { Blockfrost, Lucid } from "lucid-cardano";
-import { PartialTx } from "lucid-cardano-partialtx";
-import * as LucidPartialTx from "lucid-cardano-partialtx";
+import { PartialTx, mkPartialTxInterpreter } from "lucid-cardano-partialtx";
 
 import { blockfrostProjId, blockfrostUrl } from "../config.json";
 
@@ -25,7 +24,7 @@ const ownWalletAddress = await lucid.wallet.address();
 const ownPkh = lucid.utils.getAddressDetails(ownWalletAddress).paymentCredential!.hash;
 const ownSkh = lucid.utils.getAddressDetails(ownWalletAddress).stakeCredential?.hash;
 
-const buildTxFrom = LucidPartialTx.buildTxFrom.bind(lucid);
+const buildTxFrom = mkPartialTxInterpreter(lucid);
 
 mintABtn.onclick = async () => {
   const res = await fetch(`${originUrl}/contracts/dummyMintA`, {

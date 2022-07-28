@@ -36,10 +36,10 @@ await build({
 // This creates the web modules from the outputted node package.
 await esbuild.build({
   bundle: true,
+  minify: true,
   format: "esm",
   entryPoints: ["./dist/esm/mod.js"],
   outfile: "./dist/web/mod.js",
-  minify: false,
   plugins: [esbuildMappings({
     "lucid-cardano": "https://unpkg.com/lucid-cardano@0.5.2/web/mod.js",
   })],
