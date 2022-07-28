@@ -64,7 +64,7 @@ import { buildTxFrom } from "lucid-cardano-partialtx";
 Simply import from deno.land:
 
 ```ts
-import { Lucid } from "https://deno.land/x/lucid-partialtx@0.1.0/mod.ts";
+import { Lucid } from "https://deno.land/x/lucid_partialtx@0.1.0/mod.ts";
 ```
 
 > Aside: You can use ESBuild or similar to bundle your Deno project to run on the browser. However, you should to replace the `deno.land` imports with the [browser package](#browser-js) url if running in a browser environment. See [lucid-partialtx/build.ts](./lucid-partialtx/build.ts) that does something similar (but only after generating a node package).
@@ -73,7 +73,7 @@ import { Lucid } from "https://deno.land/x/lucid-partialtx@0.1.0/mod.ts";
 
 <script type="module">
 
-import { Lucid } from "https://unpkg.com/lucid-cardano-partialtx@0.1.2/web/mod.js";
+import { Lucid } from "https://unpkg.com/lucid-cardano-partialtx@0.1.0/web/mod.js";
 
 </script>
 
@@ -135,7 +135,9 @@ node sync progress by running `make query-tip`.
 
 ## 3. Build the frontend project
 
-Head inside the `example/frontend` directory and run the following commands:
+Firstly, run `make build-lucid-lib` at the root project directory.
+
+Now, head inside the `example/frontend` directory and run the following commands:
 
 - `npm i` - to install all the npm dependencies
 - `npx webpack` - to build the project
