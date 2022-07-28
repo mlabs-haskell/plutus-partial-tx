@@ -150,7 +150,7 @@ Once the node has synced and all the previous steps have been completed, run
 singular dummy minting button!
 
 **Note**: You'll need a wallet supporting Vasil for signing and submission to
-work properly.
+work properly. In particular, mainline Nami does not support vasil yet. You need to use the [`vasil` branch of nami](https://github.com/Berry-Pool/nami-wallet/tree/vasil#testnet).
 
 # API
 
