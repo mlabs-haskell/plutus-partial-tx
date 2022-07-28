@@ -67,9 +67,9 @@
                 nodejs
                 nodePackages.npm
                 haskellPackages.fourmolu
-              ]) ++ (with project.hsPkgs; [
-                plutus-chain-index.components.exes.plutus-chain-index
-              ]);
+              ]) ++ [
+                project.hsPkgs.plutus-chain-index.components.exes.plutus-chain-index
+              ];
 
               tools.haskell-language-server = { };
 
