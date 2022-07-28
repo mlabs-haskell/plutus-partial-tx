@@ -18,16 +18,6 @@ effortlessly.
   [bot-plutus-interface](https://github.com/mlabs-haskell/bot-plutus-interface)
   (BPI), all you need is `cardano-node` and `plutus-chain-index`.
 
-# Installation
-
-1. Add a `bot-plutus-interface` as a dependency in your nix flake setup.
-2. Add `plutus-partial-tx` to your flake inputs and extra sources.
-3. Add latest version of `cardano-node`, `cardano-cli` to your nix shell.
-
-   (OR) Download them from hydra and put them in your `$PATH`.
-4. Have `plutus-chain-index` (ideally the same version used by `bot-plutus-interface`) binary available in your shell/PATH.
-5. Install `lucid-cardano-partialtx` via NPM.
-
 # Usage
 
 ## Backend environment setup
@@ -45,7 +35,7 @@ For `lucid-cardano-partialtx` (provided by this repo), there are three ways to i
 
 ### Node.js
 
-Install through `npm`:
+Install the [npm package](https://www.npmjs.com/package/lucid-cardano-partialtx):
 
 ```sh
 npm install lucid-cardano-partialtx
