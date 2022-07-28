@@ -1,1 +1,1 @@
-export * from './partial.ts';
+export * from "./partial.ts";
