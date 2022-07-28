@@ -25,11 +25,17 @@ effortlessly.
 2. Have the proper versions (usually latest) of `cardano-node`, `cardano-cli`, and a corresponding version (same one used by bot-plutus-interface) of `plutus-chain-index` in `$PATH`.
 3. Have `cardano-node` and `chain-index` running in the background and properly synced. You may simply copy over [the provided `testnet` directory](./testnet/) and use the scripts there to set up for testnet.
 
+   Usually, if using nix, `plutus-chain-index` is already included by BPI. All you have to do is make it available in the nix shell by adding `project.hsPkgs.plutus-chain-index.components.exes.plutus-chain-index` to `nativeBuildInputs`.
+
+> **NOTE**: You need to use a vasil compliant version of BPI. Mainline BPI does not support vasil yet. Use the [`gergely/vasil` branch](https://github.com/mlabs-haskell/bot-plutus-interface/tree/gergely/vasil) instead.
+
 ## Frontend environment setup
 
 How you set up the frontend is entirely upto you, as long as it can query the Haskell server to obtain a `PartialTx` - and use it with `lucid-cardano` and `lucid-cardano-partialtx`, it's enough.
 
 See [`Berry-Pool/lucid`](https://github.com/Berry-Pool/lucid) for adding Lucid to your dependency.
+
+> **NOTE**: You need to use a vasil compliant version of Lucid. Mainline Lucid does not support vasil yet. Use the [`vasil` branch](https://github.com/Berry-Pool/lucid/tree/vasil) instead.
 
 For `lucid-cardano-partialtx` (provided by this repo), there are three ways to import it:
 
