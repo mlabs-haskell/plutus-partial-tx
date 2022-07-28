@@ -1,6 +1,6 @@
 {
   "name": "lucid-cardano-partialtx",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Interpreter for partial transactions using lucid-cardano",
   "author": "chase@mlabs.city",
   "license": "MIT",
