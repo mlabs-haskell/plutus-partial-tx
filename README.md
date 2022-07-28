@@ -30,6 +30,69 @@ effortlessly.
 
 # Usage
 
+## Backend environment setup
+1. Add the proper versions of `bot-plutus-interface` and `plutus-partial-tx` as dependencies to your project.
+2. Have the proper versions (usually latest) of `cardano-node`, `cardano-cli`, and a corresponding version (same one used by bot-plutus-interface) of `plutus-chain-index` in `$PATH`.
+3. Have `cardano-node` and `chain-index` running in the background and properly synced. You may simply copy over [the provided `testnet` directory](./testnet/) and use the scripts there to set up for testnet.
+
+## Frontend environment setup
+
+How you set up the frontend is entirely upto you, as long as it can query the Haskell server to obtain a `PartialTx` - and use it with `lucid-cardano` and `lucid-cardano-partialtx`, it's enough.
+
+See [`Berry-Pool/lucid`](https://github.com/Berry-Pool/lucid) for adding Lucid to your dependency.
+
+For `lucid-cardano-partialtx` (provided by this repo), there are three ways to import it:
+
+### Node.js
+
+Install through `npm`:
+
+```sh
+npm install lucid-cardano-partialtx
+```
+
+Import in your file:
+
+```sh
+import { buildTxFrom } from "lucid-cardano-partialtx";
+```
+
+> Aside: You can use webpack or similar to bundle your Node project to run on the browser. See [full example that does this](#full-example-and-how-to-run-it)
+
+### Deno
+
+Simply import from deno.land:
+
+```ts
+import { Lucid } from "https://deno.land/x/lucid-partialtx@0.1.0/mod.ts";
+```
+
+> Aside: You can use ESBuild or similar to bundle your Deno project to run on the browser. However, you should to replace the `deno.land` imports with the [browser package](#browser-js) url if running in a browser environment. See [lucid-partialtx/build.ts](./lucid-partialtx/build.ts) that does something similar (but only after generating a node package).
+
+### Browser JS
+
+<script type="module">
+
+import { Lucid } from "https://unpkg.com/lucid-cardano-partialtx@0.1.2/web/mod.js";
+
+</script>
+
+> Aside: This is pure JS directly running in the browser: probably not too practical for large projects.
+
+## Haskell server
+
+Once you have the environment set up, your haskell server merely has to use BPI (bot-plutus-interface) to run your contracts returning `PartialTx`s. You can hook up BPI with the testnet quite easily: simply copy over the [`BPI.Testnet.Setup` module](./example/BPI/Testnet/Setup.hs) from the example.
+
+A simple servant server, showcasing a simple `Contract` usage, can be found in [example/Main](./example/Main.hs).
+
+## Frontend Lucid
+
+All you have to do is create a `PartialTxInterpreter` by passing your `Lucid` instance to `mkPartialTxInterpreter`, make an API call to receieve the `PartialTx` from your server, and pass it through the interpreter. The resulting Lucid `Tx` can be modified further or directly signed, and submitted.
+
+See [example/frontend/src/index.ts](./example/frontend/src/index.ts).
+
+# Full example and how to run it
+
 There is a full example with servant, BPI, and Lucid that can run a dummy
 minting contract on the testnet. Check the haskell code
 [in the example directory](./example). The gist is that you can copy over
@@ -122,23 +185,18 @@ unbalancedToPartial :: UnbalancedTx -> PartialTx
 > So calling `mkTx` followed by `submitUnbalancedTx` is effectively the same as
 > just calling `submitTx` (and similar).
 
-Now, you need a Haskell server to serve these `PartialTx` to the frontend -
-where the user's browser will receive the JSON of this data type. Once the
-frontend has access to the `PartialTx`, you can use Lucid to interpret it into a
-Transaction:
+In the frontend, bind your `Lucid` instance to `mkPartialTxInterpreter`, and use the resulting `PartialTxInterpreter` to interpret a `PartialTx`:
 
 ```ts
-buildTxFrom(this: Lucid, { inps, outs, mint, requiredSignatories, extraDatums }: PartialTx): Tx
+type PartialTxInterpreter = (x: PartialTx) => Tx;
+
+mkPartialTxInterpreter(lucid: Lucid): PartialTxInterpreter;
 ```
 
 Once you obtain a Lucid `Tx`, it's as simple as signing and submitting it, which
 looks like:
 
 ```ts
-const tx = await buildTxFrom.bind(lucid, partialTx).complete();
 const signedTx = await tx.sign().complete();
 return signedTx.submit();
 ```
-
-where `lucid` is an instance of `Lucid`, and `partialTx` is the `PartialTx`
-JSON.
