@@ -101,7 +101,7 @@ executable partial-tx-server
   build-depends:
     , aeson-pretty
     , bot-plutus-interface
-    , cardano-api           ==1.35.1
+    , cardano-api           ^>=1.35
     , playground-common
     , plutus-pab
     , plutus-partial-tx

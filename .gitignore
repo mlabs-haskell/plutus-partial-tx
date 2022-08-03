@@ -6,7 +6,7 @@ dist-newstyle/
 *.log
 
 # Local testnet and BPI files
-db/
+db
 testnet/scripts
 testnet/signing-keys
 testnet/txs
