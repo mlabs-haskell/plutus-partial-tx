@@ -50,7 +50,7 @@ npm install lucid-cardano-partialtx
 Import in your file:
 
 ```sh
-import { buildTxFrom } from "lucid-cardano-partialtx";
+import { mkPartialTxInterpreter } from "lucid-cardano-partialtx";
 ```
 
 > Aside: You can use webpack or similar to bundle your Node project to run on the browser. See [full example that does this](#full-example-and-how-to-run-it)
@@ -60,7 +60,7 @@ import { buildTxFrom } from "lucid-cardano-partialtx";
 Simply import from deno.land:
 
 ```ts
-import { Lucid } from "https://deno.land/x/lucid_partialtx@0.1.2/mod.ts";
+import { mkPartialTxInterpreter } from "https://deno.land/x/lucid_partialtx@0.1.2/mod.ts";
 ```
 
 > Aside: You can use ESBuild or similar to bundle your Deno project to run on the browser. However, you should to replace the `deno.land` imports with the [browser package](#browser-js) url if running in a browser environment. See [lucid-partialtx/build.ts](./lucid-partialtx/build.ts) that does something similar (but only after generating a node package).
@@ -70,7 +70,7 @@ import { Lucid } from "https://deno.land/x/lucid_partialtx@0.1.2/mod.ts";
 ```hs
 <script type="module">
 
-import { Lucid } from "https://unpkg.com/lucid-cardano-partialtx@0.1.2/web/mod.js";
+import { mkPartialTxInterpreter } from "https://unpkg.com/lucid-cardano-partialtx@0.1.2/web/mod.js";
 
 </script>
 ```
