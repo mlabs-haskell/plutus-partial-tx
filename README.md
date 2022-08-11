@@ -2,7 +2,7 @@
 
 A library to export partial transactions (unbalanced, unsigned) and get them signed and submitted by a frontend PAB. This enables you to re-use your regular Haskell `Contract`s while still having a deployment solution for production - effortlessly.
 
-**NOTE**: This currently lacks support for validity ranges.
+**NOTE**: ~~This currently lacks support for validity ranges.~~ Please check out the `vasil` branch.
 
 # Highlights
 
