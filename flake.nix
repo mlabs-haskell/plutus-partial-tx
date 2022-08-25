@@ -7,7 +7,7 @@
 
     bot-plutus-interface.url = "github:mlabs-haskell/bot-plutus-interface?ref=gergely/vasil";
 
-    cardano-node.url = "github:input-output-hk/cardano-node?ref=7612a245a6e2c51d0f1c3e0d65d7fe9363850043";
+    cardano-node.url = "github:input-output-hk/cardano-node?ref=1.35.3";
   };
 
   outputs = inputs@{ self, nixpkgs, haskell-nix, bot-plutus-interface, cardano-node, ... }:
