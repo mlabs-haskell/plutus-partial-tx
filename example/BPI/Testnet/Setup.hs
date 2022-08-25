@@ -6,6 +6,7 @@ import Data.Text (Text)
 import qualified Data.Text as Txt
 import qualified Data.UUID.V4 as UUID
 import GHC.IO.Encoding (setLocaleEncoding, utf8)
+import Numeric.Natural (Natural)
 import Servant.Client (BaseUrl (BaseUrl), Scheme (Http))
 import System.Directory (createDirectoryIfMissing)
 import System.Environment (getEnv)
@@ -15,9 +16,11 @@ import qualified BotPlutusInterface.Contract as BPI
 import qualified BotPlutusInterface.QueryNode as BPI
 import BotPlutusInterface.Types (
   CLILocation (Local),
+  CollateralVar (CollateralVar),
   ContractEnvironment (..),
   ContractState (ContractState),
   LogLevel (Info),
+  LogType (AnyLog),
   PABConfig (..),
   TxStatusPolling (TxStatusPolling),
  )
@@ -33,47 +36,9 @@ import Plutus.Contract (AsContractError, Contract, EmptySchema)
 import Plutus.PAB.Core.ContractInstance.STM (Activity (Active))
 import Wallet.Types (ContractInstanceId (ContractInstanceId))
 
-newtype ContractRunner = ContractRunner
-  { runContract ::
-      forall w e a.
-      (ToJSON w, Monoid w, AsContractError e) =>
-      (PubKeyHash, Maybe StakePubKeyHash) ->
-      Contract w EmptySchema e a ->
-      IO (Either e a)
-  }
-
--- | Creates directories necessary for bot interface and creates the contract env for testnet.
-runSetup :: FilePath -> IO ContractRunner
-runSetup workDir = do
-  setLocaleEncoding utf8
-  createRequiredDirs
-  sockPath <- getEnv "CARDANO_NODE_SOCKET_PATH"
-  let nodeInfo = BPI.NodeInfo (Testnet $ NetworkMagic 1097911063) sockPath
-  (pparams, paramsFile) <- saveProtocolParams nodeInfo
-
-  let pabConf (ownPkh, ownSpkh) = mkPabConf pparams (Txt.pack paramsFile) workDir (ownPkh, ownSpkh)
-  pure $
-    ContractRunner $ \(pkh, spkh) contr -> do
-      instId <- ContractInstanceId <$> UUID.nextRandom
-      st <- newTVarIO (ContractState Active mempty)
-      a <- newTVarIO mempty
-      b <- newTVarIO mempty
-      let cEnv = ContractEnvironment (pabConf (pkh, spkh)) instId st a b
-      BPI.runContract cEnv contr
-  where
-    createRequiredDirs =
-      mapM_
-        (createDirectoryIfMissing True . (workDir </>))
-        [ keysDir
-        , scriptsDir
-        , txsDir
-        , metadataDir
-        ]
-    saveProtocolParams nodeInfo = do
-      pparams :: ProtocolParameters <- getOrFailM $ BPI.queryProtocolParams nodeInfo
-      let ppath = workDir </> pParamsFile
-      Aeson.encodeFile ppath pparams
-      return (pparams, ppath)
+-- | default collateral size that's to be used as collateral.
+defCollateralSize :: Natural
+defCollateralSize = 10_000_000
 
 pParamsFile :: FilePath
 pParamsFile = "pparams.json"
@@ -90,6 +55,49 @@ txsDir = "txs"
 metadataDir :: FilePath
 metadataDir = "metadata"
 
+newtype ContractRunner = ContractRunner
+  { runContract ::
+      forall w e a.
+      (ToJSON w, Monoid w, AsContractError e) =>
+      (PubKeyHash, Maybe StakePubKeyHash) ->
+      Contract w EmptySchema e a ->
+      IO (Either e a)
+  }
+
+-- | Creates directories necessary for bot interface and creates the contract env for testnet.
+runSetup :: FilePath -> IO ContractRunner
+runSetup workDir = do
+  setLocaleEncoding utf8
+  createRequiredDirs
+  sockPath <- getEnv "CARDANO_NODE_SOCKET_PATH"
+  let nodeInfo = BPI.NodeInfo (Testnet $ NetworkMagic 2) sockPath
+  (pparams, paramsFile) <- saveProtocolParams nodeInfo
+
+  let pabConf (ownPkh, ownSpkh) = mkPabConf pparams (Txt.pack paramsFile) workDir (ownPkh, ownSpkh)
+  pure $
+    ContractRunner $ \(pkh, spkh) contr -> do
+      instId <- ContractInstanceId <$> UUID.nextRandom
+      st <- newTVarIO (ContractState Active mempty)
+      a <- newTVarIO mempty
+      b <- newTVarIO mempty
+      c <- CollateralVar <$> newTVarIO Nothing
+      let cEnv = ContractEnvironment (pabConf (pkh, spkh)) instId st a b c
+      BPI.runContract cEnv contr
+  where
+    createRequiredDirs =
+      mapM_
+        (createDirectoryIfMissing True . (workDir </>))
+        [ keysDir
+        , scriptsDir
+        , txsDir
+        , metadataDir
+        ]
+    saveProtocolParams nodeInfo = do
+      pparams :: ProtocolParameters <- getOrFailM $ BPI.queryProtocolParams nodeInfo
+      let ppath = workDir </> pParamsFile
+      Aeson.encodeFile ppath pparams
+      return (pparams, ppath)
+
 getOrFail :: Show e => Either e a -> a
 getOrFail = either (error . show) id
 
@@ -100,7 +108,7 @@ mkPabConf :: ProtocolParameters -> Text -> FilePath -> (PubKeyHash, Maybe StakeP
 mkPabConf pparams pparamsFile workDir (ownPkh, ownSpkh) =
   PABConfig
     { pcCliLocation = Local
-    , pcNetwork = Testnet (NetworkMagic 1097911063)
+    , pcNetwork = Testnet (NetworkMagic 2)
     , pcChainIndexUrl = BaseUrl Http "localhost" 9083 ""
     , pcPort = 9080
     , pcProtocolParams = Just pparams
@@ -114,9 +122,10 @@ mkPabConf pparams pparamsFile workDir (ownPkh, ownSpkh) =
     , pcCollectLogs = False
     , pcBudgetMultiplier = 1
     , pcTxStatusPolling = TxStatusPolling 500_000 5
-    , pcLogLevel = Info
+    , pcLogLevel = Info [AnyLog]
     , pcProtocolParamsFile = pparamsFile
     , pcEnableTxEndpoint = True
     , pcCollectStats = True
     , pcMetadataDir = Txt.pack $ workDir </> metadataDir
+    , pcCollateralSize = defCollateralSize
     }

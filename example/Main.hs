@@ -69,7 +69,7 @@ aAssetCls = AssetClass (dummyTkMpCs, "A")
 dummyMint :: AssetClass -> Integer -> Contract w s e UnbalancedTx
 dummyMint ascls amount = do
   let val = Value.assetClassValue ascls amount
-      lookups = Constraints.mintingPolicy dummyTkMp
+      lookups = Constraints.plutusV1MintingPolicy dummyTkMp
       tx = Constraints.mustMintValue val
   either undefined pure $ Constraints.mkTx @Void lookups tx
 
