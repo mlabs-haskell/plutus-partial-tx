@@ -23,9 +23,11 @@ effortlessly.
 ## Backend environment setup
 1. Add the proper versions of `bot-plutus-interface` and `plutus-partial-tx` as dependencies to your project.
 2. Have the proper versions (usually latest) of `cardano-node`, `cardano-cli`, and a corresponding version (same one used by bot-plutus-interface) of `plutus-chain-index` in `$PATH`.
-3. Have `cardano-node` and `chain-index` running in the background and properly synced. You may simply copy over [the provided `testnet` directory](./testnet/) and use the scripts there to set up for testnet.
+3. Have `cardano-node` and `chain-index` running in the background and properly synced. You may simply copy over [the provided `testnet` directory](./testnet/) and use the scripts there to set up for testnet. Remember to create the `db` directory inside `testnet/chain-index` first!
 
    Usually, if using nix, `plutus-chain-index` is already included by BPI. All you have to do is make it available in the nix shell by adding `project.hsPkgs.plutus-chain-index.components.exes.plutus-chain-index` to `nativeBuildInputs`.
+
+> **NOTE**: The provided example is using the **preview** testnet.
 
 > **NOTE**: You need to use a vasil compliant version of BPI. Mainline BPI does not support vasil yet. Use the [`gergely/vasil` branch](https://github.com/mlabs-haskell/bot-plutus-interface/tree/gergely/vasil) instead.
 
@@ -121,6 +123,8 @@ config should contain your blockfrost API access key:
 
 You'll also need `cardano-node` and `chain-index` running in the background,
 properly connected to testnet.
+
+Unless the directory `testnet/chain-index/db` already exists, you should create an empty directory: `mkdir testnet/chain-index/db`.
 
 All you have to do run `make services`.
 

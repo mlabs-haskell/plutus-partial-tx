@@ -30,7 +30,7 @@ watch-frontend: requires_nix_shell
 	@cd example/frontend && npx webpack --watch
 
 query-tip: requires_nix_shell
-	@CARDANO_NODE_SOCKET_PATH=$$PWD/testnet/node/node.socket cardano-cli query tip --testnet-magic 1097911063
+	@CARDANO_NODE_SOCKET_PATH=$$PWD/testnet/node/node.socket cardano-cli query tip --testnet-magic 2
 
 ifdef FLAGS
 GHC_FLAGS = --ghc-options "$(FLAGS)"
