@@ -3,6 +3,17 @@ import { PartialTx, mkPartialTxInterpreter } from "lucid-cardano-partialtx";
 
 import { blockfrostProjId, blockfrostUrl } from "../config.json";
 
+type WalletPropname = 'nami' | 'eternl';
+type WalletObjContainer = Record<WalletPropname, unknown>;
+
+function getWalletObj(x: WalletObjContainer) {
+  if ('nami' in x) {
+    return x.nami;
+  } else if ('eternl' in x) {
+    return x.eternl;
+  }
+}
+
 // Initialise the blockfrost instance.
 const blockfrostInst = new Blockfrost(blockfrostUrl, blockfrostProjId);
 
@@ -11,7 +22,7 @@ const lucid = await Lucid.new(blockfrostInst, "Testnet");
 
 // Assumes you are in a browser environment - enables interfacing with Nami.
 // @ts-ignore
-lucid.selectWallet(await window.cardano.nami.enable());
+lucid.selectWallet(await getWalletObj(window.cardano).enable());
 
 const mintABtn = document.getElementById("mintA")!;
 
