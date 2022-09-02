@@ -18,7 +18,7 @@ function getWalletObj(x: WalletObjContainer) {
 const blockfrostInst = new Blockfrost(blockfrostUrl, blockfrostProjId);
 
 // Initialise the lucid instance.
-const lucid = await Lucid.new(blockfrostInst, "Testnet");
+const lucid = await Lucid.new(blockfrostInst, "Preview");
 
 // Assumes you are in a browser environment - enables interfacing with Nami.
 // @ts-ignore

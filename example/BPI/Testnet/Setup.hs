@@ -12,8 +12,8 @@ import System.Directory (createDirectoryIfMissing)
 import System.Environment (getEnv)
 import System.FilePath ((</>))
 
+import qualified BotPlutusInterface.CardanoNode.Query as BPI
 import qualified BotPlutusInterface.Contract as BPI
-import qualified BotPlutusInterface.QueryNode as BPI
 import BotPlutusInterface.Types (
   CLILocation (Local),
   CollateralVar (CollateralVar),
@@ -24,13 +24,16 @@ import BotPlutusInterface.Types (
   PABConfig (..),
   TxStatusPolling (TxStatusPolling),
  )
+import Cardano.Api (CardanoMode, ConsensusModeParams (CardanoModeParams), EpochSlots (EpochSlots), QueryInShelleyBasedEra (QueryProtocolParameters))
 import Cardano.Api.Shelley (
+  LocalNodeConnectInfo (LocalNodeConnectInfo),
   NetworkId (Testnet),
   NetworkMagic (NetworkMagic),
   ProtocolParameters,
   ToJSON,
  )
-
+import Control.Monad.Freer (runM)
+import Control.Monad.Freer.Reader (runReader)
 import Ledger (PubKeyHash, StakePubKeyHash)
 import Plutus.Contract (AsContractError, Contract, EmptySchema)
 import Plutus.PAB.Core.ContractInstance.STM (Activity (Active))
@@ -70,7 +73,10 @@ runSetup workDir = do
   setLocaleEncoding utf8
   createRequiredDirs
   sockPath <- getEnv "CARDANO_NODE_SOCKET_PATH"
-  let nodeInfo = BPI.NodeInfo (Testnet $ NetworkMagic 2) sockPath
+  let nodeInfo = LocalNodeConnectInfo
+                   (CardanoModeParams $ EpochSlots (60 * 60 * 24))
+                   (Testnet $ NetworkMagic 2)
+                   sockPath
   (pparams, paramsFile) <- saveProtocolParams nodeInfo
 
   let pabConf (ownPkh, ownSpkh) = mkPabConf pparams (Txt.pack paramsFile) workDir (ownPkh, ownSpkh)
@@ -92,8 +98,13 @@ runSetup workDir = do
         , txsDir
         , metadataDir
         ]
+    saveProtocolParams :: LocalNodeConnectInfo CardanoMode -> IO (ProtocolParameters, FilePath)
     saveProtocolParams nodeInfo = do
-      pparams :: ProtocolParameters <- getOrFailM $ BPI.queryProtocolParams nodeInfo
+      pparams :: ProtocolParameters <-
+        getOrFailM
+          . runM
+          . runReader nodeInfo
+          $ BPI.queryBabbageEra QueryProtocolParameters
       let ppath = workDir </> pParamsFile
       Aeson.encodeFile ppath pparams
       return (pparams, ppath)

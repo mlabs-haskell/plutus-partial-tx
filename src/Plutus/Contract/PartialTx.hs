@@ -42,13 +42,13 @@ import qualified Data.Vector as Vec
 
 import Control.Lens (view, _Right)
 
+import Cardano.Ledger.Alonzo.Language (Language (PlutusV1))
 import Ledger (
   Address (Address),
   CurrencySymbol,
   Datum,
   Extended (Finite, NegInf, PosInf),
   Interval (Interval),
-  LedgerPlutusVersion (PlutusV1),
   LowerBound (LowerBound),
   MintingPolicy (MintingPolicy),
   MintingPolicyHash,
@@ -232,7 +232,7 @@ data PartialTxIn = PartialTxIn
 -- | Detailed information about the type of a 'TxIn', and related info.
 data PartialTxInDetailed
   = ScriptTxIn
-      { ptxInDet'version :: LedgerPlutusVersion
+      { ptxInDet'version :: Language
       , ptxInDet'script :: Validator
       , ptxInDet'datm :: Datum
       , ptxInDet'redm :: Redeemer
@@ -251,7 +251,7 @@ data PartialTxOut = PartialTxOut
 
 -- | Information about a mint event: the associated minting policy, the redeemer, and the amount to mint.
 data PartialTxMintVal = PartialTxMv
-  { ptxMv'version :: LedgerPlutusVersion
+  { ptxMv'version :: Language
   , ptxMv'script :: MintingPolicy
   , ptxMv'redeemer :: Redeemer
   , ptxMv'amount :: Integer
@@ -293,7 +293,7 @@ instance ToJSON PartialTxInDetailed where
   toJSON SimpleScriptTxIn = Aeson.object ["tag" .= Txt.pack "SimpleScriptTxIn"]
 
 -- | Given a Haskell 'Script', alongside its ledger plutus version, create a JSON matching Lucid's `Script` type.
-scriptJSON :: LedgerPlutusVersion -> Script -> Aeson.Value
+scriptJSON :: Language -> Script -> Aeson.Value
 scriptJSON vers scrpt = Aeson.object ["type" .= show vers, "script" .= serializeScriptCborHex scrpt]
 
 instance ToJSON PartialTxMintVal where

@@ -32,6 +32,7 @@ common common-deps
     , base16-bytestring
     , bytestring
     , cardano-binary
+    , cardano-ledger-alonzo
     , containers
     , data-default
     , directory
@@ -46,7 +47,8 @@ common common-deps
     , serialise
     , text
     , vector
-
+    , freer-simple
+    
 common common-lang
   default-extensions:
     BangPatterns
