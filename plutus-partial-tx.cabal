@@ -37,6 +37,7 @@ common common-deps
     , data-default
     , directory
     , filepath
+    , freer-simple
     , lens
     , plutus-contract
     , plutus-core
@@ -47,8 +48,7 @@ common common-deps
     , serialise
     , text
     , vector
-    , freer-simple
-    
+
 common common-lang
   default-extensions:
     BangPatterns

@@ -73,10 +73,11 @@ runSetup workDir = do
   setLocaleEncoding utf8
   createRequiredDirs
   sockPath <- getEnv "CARDANO_NODE_SOCKET_PATH"
-  let nodeInfo = LocalNodeConnectInfo
-                   (CardanoModeParams $ EpochSlots (60 * 60 * 24))
-                   (Testnet $ NetworkMagic 2)
-                   sockPath
+  let nodeInfo =
+        LocalNodeConnectInfo
+          (CardanoModeParams $ EpochSlots (60 * 60 * 24))
+          (Testnet $ NetworkMagic 2)
+          sockPath
   (pparams, paramsFile) <- saveProtocolParams nodeInfo
 
   let pabConf (ownPkh, ownSpkh) = mkPabConf pparams (Txt.pack paramsFile) workDir (ownPkh, ownSpkh)
