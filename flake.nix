@@ -5,9 +5,10 @@
     nixpkgs.follows = "bot-plutus-interface/nixpkgs";
     haskell-nix.follows = "bot-plutus-interface/haskell-nix";
 
-    bot-plutus-interface.url = "github:mlabs-haskell/bot-plutus-interface?ref=gergely/vasil";
-
     cardano-node.url = "github:input-output-hk/cardano-node?ref=1.35.3";
+
+    bot-plutus-interface.url = "github:mlabs-haskell/bot-plutus-interface";
+    bot-plutus-interface.inputs.cardano-node.follows = "cardano-node";
   };
 
   outputs = inputs@{ self, nixpkgs, haskell-nix, bot-plutus-interface, cardano-node, ... }:

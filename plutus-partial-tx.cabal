@@ -32,10 +32,12 @@ common common-deps
     , base16-bytestring
     , bytestring
     , cardano-binary
+    , cardano-ledger-alonzo
     , containers
     , data-default
     , directory
     , filepath
+    , freer-simple
     , lens
     , plutus-contract
     , plutus-core
