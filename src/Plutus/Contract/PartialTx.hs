@@ -1,3 +1,5 @@
+{-# LANGUAGE ViewPatterns #-}
+
 {- |
 Module: Plutus.Contract.PartialTx
 Description: Machinery for constructing a 'PartialTx' out of an 'UnbalancedTx', or lookups and constraints.
@@ -36,9 +38,11 @@ import Data.Maybe (fromMaybe)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Text as Txt
-import Data.Vector (Vector)
 import qualified Data.Vector as Vec
 
+import Control.Lens (view, _Right)
+
+import Cardano.Ledger.Alonzo.Language (Language (PlutusV1))
 import Ledger (
   Address (Address),
   CurrencySymbol,
@@ -47,6 +51,7 @@ import Ledger (
   Interval (Interval),
   LowerBound (LowerBound),
   MintingPolicy (MintingPolicy),
+  MintingPolicyHash,
   POSIXTime (getPOSIXTime),
   POSIXTimeRange,
   PaymentPubKeyHash (PaymentPubKeyHash),
@@ -79,7 +84,6 @@ import Ledger (
   Validator (Validator),
   ValidatorHash (..),
   Value,
-  mintingPolicyHash,
  )
 import Ledger.Constraints (
   MkTxError,
@@ -129,7 +133,7 @@ TODO: The POSIXTimeRange needs a more Lucid friendly representation.
 unbalancedToPartial :: UnbalancedTx -> PartialTx
 unbalancedToPartial
   ( UnbalancedTx
-      Tx {txInputs, txOutputs, txMint, txMintScripts, txRedeemers, txData}
+      (view _Right -> Tx {txInputs = Set.fromList -> txInputs, txOutputs, txMint, txMintScripts, txRedeemers, txData})
       reqSigMap
       utxoIx
       validityRange
@@ -144,21 +148,20 @@ unbalancedToPartial
                  in PartialTxIn ref (addressToAddr addr) (Value.flattenValue val) $ case inTypeMaybe of
                       -- mkTx always puts the 'TxInType' in its output.
                       Nothing -> error "unbalancedToPartial: TxInType missing"
-                      Just (ConsumeScriptAddress v redm datm) ->
-                        ScriptTxIn v datm redm
+                      Just (ConsumeScriptAddress vers v redm datm) ->
+                        ScriptTxIn vers v datm redm
                       Just ConsumePublicKeyAddress -> PubKeyTxIn
                       Just ConsumeSimpleScriptAddress -> SimpleScriptTxIn
             )
             txInputs
       , ptx'outs = partialTxOuts
-      , ptx'mint = valToMintAsset mpArr txRedeemers txMint
+      , ptx'mint = valToMintAsset txMintScripts txRedeemers txMint
       , -- Datums unused by any script involved in the transaction.
         ptx'extraDatums = Set.fromList . filter (`Set.notMember` usedDatums) $ Map.elems txData
-      , ptx'requiredSignatories = Map.keys reqSigMap
+      , ptx'requiredSignatories = Set.toList reqSigMap
       , ptx'validityRange = mkValidityRange validityRange
       }
     where
-      mpArr = Vec.fromList $ Set.toList txMintScripts
       -- Convert 'TxOut's to 'PartialTxOut's, which essentially replaces the 'DatumHash'es with the actual 'Datum'.
       partialTxOuts =
         map
@@ -170,7 +173,7 @@ unbalancedToPartial
       inputDatums =
         Set.fold
           ( \(TxIn _ t) acc -> case t of
-              Just (ConsumeScriptAddress _ _ d) -> d : acc
+              Just (ConsumeScriptAddress _ _ _ d) -> d : acc
               _ -> acc
           )
           []
@@ -228,7 +231,12 @@ data PartialTxIn = PartialTxIn
 
 -- | Detailed information about the type of a 'TxIn', and related info.
 data PartialTxInDetailed
-  = ScriptTxIn {ptxInDet'script :: Validator, ptxInDet'datm :: Datum, ptxInDet'redm :: Redeemer}
+  = ScriptTxIn
+      { ptxInDet'version :: Language
+      , ptxInDet'script :: Validator
+      , ptxInDet'datm :: Datum
+      , ptxInDet'redm :: Redeemer
+      }
   | PubKeyTxIn
   | SimpleScriptTxIn
   deriving stock (Eq, Ord, Show)
@@ -243,11 +251,14 @@ data PartialTxOut = PartialTxOut
 
 -- | Information about a mint event: the associated minting policy, the redeemer, and the amount to mint.
 data PartialTxMintVal = PartialTxMv
-  { ptxMv'script :: MintingPolicy
+  { ptxMv'version :: Language
+  , ptxMv'script :: MintingPolicy
   , ptxMv'redeemer :: Redeemer
   , ptxMv'amount :: Integer
   }
   deriving stock (Eq, Ord, Show)
+
+-- TODO https://hackage.haskell.org/package/aeson-2.1.0.0/docs/Data-Aeson-TH.html
 
 instance ToJSON PartialTx where
   toJSON
@@ -270,25 +281,25 @@ instance ToJSON PartialTx where
         ]
 
 instance ToJSON PartialTxInDetailed where
-  toJSON (ScriptTxIn (Validator scrpt) datm redm) =
+  toJSON (ScriptTxIn vers (Validator scrpt) datm redm) =
     Aeson.object
       [ "tag" .= Txt.pack "ScriptTxIn"
       , -- This should match Lucid's `Script` type.
-        "validator" .= v1ScriptJson scrpt
+        "validator" .= scriptJSON vers scrpt
       , "datum" .= toData datm
       , "redeemer" .= toData redm
       ]
   toJSON PubKeyTxIn = Aeson.object ["tag" .= Txt.pack "PubKeyTxIn"]
   toJSON SimpleScriptTxIn = Aeson.object ["tag" .= Txt.pack "SimpleScriptTxIn"]
 
--- | Given a Haskell 'Script', create a JSON matching Lucid's `Script` type.
-v1ScriptJson :: Script -> Aeson.Value
-v1ScriptJson scrpt = Aeson.object ["type" .= Txt.pack "PlutusV1", "script" .= serializeScriptCborHex scrpt]
+-- | Given a Haskell 'Script', alongside its ledger plutus version, create a JSON matching Lucid's `Script` type.
+scriptJSON :: Language -> Script -> Aeson.Value
+scriptJSON vers scrpt = Aeson.object ["type" .= show vers, "script" .= serializeScriptCborHex scrpt]
 
 instance ToJSON PartialTxMintVal where
-  toJSON (PartialTxMv (MintingPolicy scrpt) redm amount) =
+  toJSON (PartialTxMv vers (MintingPolicy scrpt) redm amount) =
     Aeson.object
-      [ "policy" .= v1ScriptJson scrpt
+      [ "policy" .= scriptJSON vers scrpt
       , "redeemer" .= toData redm
       , "amount" .= amount
       ]
@@ -425,33 +436,37 @@ flattenedValToAsset =
     mempty
 
 -- | Similar to 'valToAsset', but the value in the maps contain extra minting information.
-valToMintAsset :: Vector MintingPolicy -> Redeemers -> Value -> Map AssetId PartialTxMintVal
-valToMintAsset mps redmMap v =
+valToMintAsset :: Map MintingPolicyHash MintingPolicy -> Redeemers -> Value -> Map AssetId PartialTxMintVal
+valToMintAsset mpMap redmMap v =
   foldMap
     ( \cs ->
-        let (mp, redm) = mpInfo Map.! Value.currencyMPSHash cs
+        let (mp, redm) = let mpHash = Value.currencyMPSHash cs in (mpMap Map.! mpHash, mpHashToRedm Map.! mpHash)
             tokMap = Map.fromList . PlutusMap.toList . fromMaybe PlutusMap.empty $ PlutusMap.lookup cs valMap
             csHex = LedgerBytes $ coerce cs
          in Map.foldMapWithKey
               ( \(TokenName tkn) i ->
                   Map.singleton (show csHex ++ show (LedgerBytes tkn)) $
-                    PartialTxMv mp redm i
+                    -- FIXME: Must determine the version, not hardcode it.
+                    PartialTxMv PlutusV1 mp redm i
               )
               tokMap
     )
     $ Set.toList uniqueSyms
   where
-    uniqueSyms = Set.fromList $ Value.symbols v
+    -- Remove the ada symbol.
+    uniqueSyms = Set.delete "" . Set.fromList $ Value.symbols v
     valMap = Value.getValue v
-    {- Convert the 'Redeemers' map into a Map from currency symbol to Minting Policy + Redeemer.
-
-    This is way easier to perform lookups on.
-    -}
-    mpInfo =
-      Map.foldMapWithKey
-        ( \(RedeemerPtr tag idx) redm ->
-            case tag of
-              Mint -> let mp = mps Vec.! fromInteger idx in Map.singleton (mintingPolicyHash mp) (mp, redm)
-              _ -> mempty
-        )
-        redmMap
+    -- Convert the 'Redeemers' map into a Map from minting policy hash to redeemer
+    mpHashToRedm =
+      Map.delete "" $
+        Map.mapKeys
+          ( \(RedeemerPtr tag idx) ->
+              case tag of
+                Mint -> mpHashes Vec.! fromInteger idx
+                {- This will make it so the unwanted redeemers keep being
+                assigned/overwritten to the empty hash key. This key will be deleted afterwards.
+                -}
+                _ -> ""
+          )
+          redmMap
+    mpHashes = Vec.fromList $ Map.keys mpMap

@@ -1,3 +1,15 @@
+.vscode/
+
 dist/
 node_modules/
 dist-newstyle/
+*.log
+
+# Local testnet and BPI files
+db
+testnet/scripts
+testnet/signing-keys
+testnet/txs
+testnet/metadata
+testnet/pparams.json
+testnet/node/node.socket

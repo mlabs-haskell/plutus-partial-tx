@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               plutus-partial-tx
-version:            0.0.1
+version:            0.1.1
 homepage:           https://github.com/mlabs-haskell/plutus-partial-tx
 author:             Chase <chase@mlabs.city>
 license:            MIT
@@ -32,10 +32,13 @@ common common-deps
     , base16-bytestring
     , bytestring
     , cardano-binary
+    , cardano-ledger-alonzo
     , containers
     , data-default
     , directory
     , filepath
+    , freer-simple
+    , lens
     , plutus-contract
     , plutus-core
     , plutus-ledger
@@ -90,3 +93,35 @@ library
     Utils
 
   hs-source-dirs:  src
+
+executable partial-tx-server
+  import:         common-lang
+  import:         common-configs
+  import:         common-deps
+  import:         common-ghc-opts
+  main-is:        Main.hs
+  build-depends:
+    , aeson-pretty
+    , bot-plutus-interface
+    , cardano-api           ^>=1.35
+    , playground-common
+    , plutus-pab
+    , plutus-partial-tx
+    , plutus-tx-plugin
+    , servant
+    , servant-client
+    , servant-server
+    , stm
+    , uuid
+    , vector
+    , wai-extra
+    , warp
+
+  other-modules:
+    Api.Types
+    BPI.Testnet.Setup
+
+  hs-source-dirs: example
+  ghc-options:
+    -threaded -rtsopts -with-rtsopts=-N -fobject-code
+    -fno-ignore-interface-pragmas -fno-omit-interface-pragmas

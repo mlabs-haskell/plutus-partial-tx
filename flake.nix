@@ -5,10 +5,13 @@
     nixpkgs.follows = "bot-plutus-interface/nixpkgs";
     haskell-nix.follows = "bot-plutus-interface/haskell-nix";
 
+    cardano-node.url = "github:input-output-hk/cardano-node?ref=1.35.3";
+
     bot-plutus-interface.url = "github:mlabs-haskell/bot-plutus-interface";
+    bot-plutus-interface.inputs.cardano-node.follows = "cardano-node";
   };
 
-  outputs = inputs@{ self, nixpkgs, haskell-nix, bot-plutus-interface, ... }:
+  outputs = inputs@{ self, nixpkgs, haskell-nix, bot-plutus-interface, cardano-node, ... }:
     let
       # GENERAL
       supportedSystems = with nixpkgs.lib.systems.supported; tier1 ++ tier2 ++ tier3;
@@ -21,34 +24,18 @@
       };
       nixpkgsFor' = system: import nixpkgs { inherit system; };
 
-      formatCheckFor = system:
-        let
-          pkgs = nixpkgsFor system;
-          pkgs' = nixpkgsFor' system;
-        in
-        pkgs.runCommand "format-check"
-          {
-            nativeBuildInputs = [
-              pkgs'.git
-              pkgs'.fd
-              pkgs'.haskellPackages.cabal-fmt
-              pkgs'.nixpkgs-fmt
-              pkgs'.haskellPackages.fourmolu
-            ];
-          } ''
-          export LC_CTYPE=C.UTF-8
-          export LC_ALL=C.UTF-8
-          export LANG=C.UTF-8
-          cd ${self}
-          make format_check
-          mkdir $out
-        ''
-      ;
-
       deferPluginErrors = true;
 
       projectFor = system:
         let
+          # For adding cardano exes to the nix shell.
+          cardano-exes = [
+            cardano-node.apps.${system}.cardano-node
+          ] ++ (with cardano-node.apps.${system}; [
+            cardano-cli
+            cardano-submit-api
+          ]);
+          cardanoExesPath = builtins.concatStringsSep ":" (map (x: builtins.dirOf x.program) cardano-exes);
           pkgs = nixpkgsFor system;
           pkgs' = nixpkgsFor' system;
           project = pkgs.haskell-nix.cabalProject' {
@@ -70,14 +57,19 @@
 
               # We use the ones from Nixpkgs, since they are cached reliably.
               # Eventually we will probably want to build these with haskell.nix.
-              nativeBuildInputs = [
-                pkgs'.cabal-install
-                pkgs'.fd
-                pkgs'.haskellPackages.apply-refact
-                pkgs'.haskellPackages.cabal-fmt
-                pkgs'.hlint
-                pkgs'.nixpkgs-fmt
-                pkgs'.haskellPackages.fourmolu
+              nativeBuildInputs = (with pkgs'; [
+                cabal-install
+                fd
+                haskellPackages.apply-refact
+                haskellPackages.cabal-fmt
+                hlint
+                nixpkgs-fmt
+                deno
+                nodejs
+                nodePackages.npm
+                haskellPackages.fourmolu
+              ]) ++ [
+                project.hsPkgs.plutus-chain-index.components.exes.plutus-chain-index
               ];
 
               tools.haskell-language-server = { };
@@ -85,6 +77,11 @@
               additional = ps: [
                 ps.bot-plutus-interface
               ];
+
+              # Add the cardano exes to PATH.
+              shellHook = ''
+                export PATH=$PATH:${cardanoExesPath}
+              '';
             };
           };
         in
@@ -95,25 +92,6 @@
 
       project = perSystem projectFor;
       flake = perSystem (system: (projectFor system).flake { });
-
-      checks = perSystem (system:
-        self.flake.${system}.checks
-        // {
-          formatCheck = formatCheckFor system;
-        }
-      );
-      check = perSystem (system:
-        (nixpkgsFor system).runCommand "combined-test"
-          {
-            checksss =
-              builtins.attrValues self.checks.${system}
-              ++ builtins.attrValues self.packages.${system}
-              ++ [ self.devShell.inputDerivation ];
-          } ''
-          echo $checksss
-          touch $out
-        ''
-      );
 
       packages = perSystem (system: self.flake.${system}.packages);
       apps = perSystem (system: self.flake.${system}.apps);
