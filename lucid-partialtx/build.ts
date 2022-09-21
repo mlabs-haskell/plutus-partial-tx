@@ -17,9 +17,9 @@ await build({
   typeCheck: false,
   shims: {},
   mappings: {
-    "https://deno.land/x/lucid@0.5.4/mod.ts": {
+    "https://deno.land/x/lucid@0.6.0/mod.ts": {
       name: "lucid-cardano",
-      version: "^0.5.4",
+      version: "^0.6.0",
       peerDependency: true,
     },
   },
@@ -41,7 +41,7 @@ await esbuild.build({
   entryPoints: ["./dist/esm/mod.js"],
   outfile: "./dist/web/mod.js",
   plugins: [esbuildMappings({
-    "lucid-cardano": "https://unpkg.com/lucid-cardano@0.5.4/web/mod.js",
+    "lucid-cardano": "https://unpkg.com/lucid-cardano@0.6.0/web/mod.js",
   })],
 });
 esbuild.stop();
