@@ -1,3 +1,7 @@
+**DEPRECATED**: plutus-apps and any PAB based on it is a dead end.
+
+Consider using [CTL](https://github.com/Plutonomicon/cardano-transaction-lib) or [Lucid](https://github.com/spacebudz/lucid) instead for non-Haskell solutions.
+
 # Plutus Partial Tx
 
 A library to export partial transactions (unbalanced, unsigned) and get them
